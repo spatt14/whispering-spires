@@ -1,0 +1,2429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Whispering Spires</title>
+    <style>
+        :root {
+            --crimson: #dc143c;
+            --emerald: #10b981;
+            --violet: #8b5cf6;
+            --gold: #d4af37;
+            --dark: #1a1a2e;
+            --light: #f8f8ff;
+            --parchment: #f5e1c0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Palatino', 'Georgia', serif;
+            background-color: var(--dark);
+            color: var(--light);
+            line-height: 1.6;
+            background-image: radial-gradient(circle at center, rgba(50, 50, 80, 0.8) 0%, rgba(20, 20, 40, 1) 70%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-image 1.5s ease;
+        }
+        
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin: 20px 0;
+            background: linear-gradient(45deg, var(--crimson), var(--emerald), var(--violet));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            animation: titleGlow 10s infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 10px rgba(220, 20, 60, 0.5); }
+            33% { text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+            66% { text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
+            100% { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+        }
+        
+        .subtitle {
+            font-style: italic;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+        
+        #inventory {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .inventory-item {
+            width: 40px;
+            height: 40px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.2;
+            filter: grayscale(100%);
+        }
+        
+        .inventory-item.active {
+            opacity: 1;
+            filter: grayscale(0%);
+        }
+        
+        .book-icon {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23f5e1c0" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>');
+        }
+        
+        .amulet-icon {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23d4af37" stroke-width="2"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 5V3"></path><path d="M12 21v-2"></path><path d="M5 12H3"></path><path d="M21 12h-2"></path></svg>');
+        }
+        
+        #scene-container {
+            position: relative;
+            background-color: rgba(20, 20, 40, 0.8);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            margin-bottom: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .scene {
+            display: none;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        
+        .scene.active {
+            display: block;
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            color: var(--light);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        
+        .choices {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .choice {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .choice:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            opacity: 0.7;
+        }
+        
+        .choice:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .choice.crimson:before {
+            background-color: var(--crimson);
+        }
+        
+        .choice.emerald:before {
+            background-color: var(--emerald);
+        }
+        
+        .choice.violet:before {
+            background-color: var(--violet);
+        }
+        
+        .choice.neutral:before {
+            background: linear-gradient(to bottom, var(--crimson), var(--emerald), var(--violet));
+        }
+        
+        #visual-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .ambient-particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 20s infinite linear;
+        }
+        
+        .book-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(245, 225, 192, 0.3) 0%, rgba(245, 225, 192, 0) 70%);
+            animation: pulse 3s infinite alternate;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        
+        .amulet-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(212, 175, 55, 0.3) 0%, rgba(212, 175, 55, 0) 70%);
+            animation: pulse 4s infinite alternate;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        
+        .archway {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .archway:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        .crimson-realm {
+            background-color: rgba(220, 20, 60, 0.1);
+        }
+        
+        .crimson-realm:before {
+            background: linear-gradient(45deg, var(--crimson), transparent);
+        }
+        
+        .emerald-realm {
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        
+        .emerald-realm:before {
+            background: linear-gradient(45deg, var(--emerald), transparent);
+        }
+        
+        .violet-realm {
+            background-color: rgba(139, 92, 246, 0.1);
+        }
+        
+        .violet-realm:before {
+            background: linear-gradient(45deg, var(--violet), transparent);
+        }
+        
+        .artifact-mention {
+            font-weight: bold;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .book-mention {
+            color: var(--parchment);
+        }
+        
+        .amulet-mention {
+            color: var(--gold);
+        }
+        
+        .realm-mention {
+            font-style: italic;
+        }
+        
+        .character-name {
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        .whisper {
+            font-style: italic;
+            opacity: 0.8;
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #game-stats {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        #restart-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--light);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        #restart-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-100px) translateX(100px); }
+            50% { transform: translateY(-50px) translateX(200px); }
+            75% { transform: translateY(-200px) translateX(50px); }
+            100% { transform: translateY(0) translateX(0); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.3; }
+            100% { transform: scale(1.1); opacity: 0.6; }
+        }
+        
+        @media (max-width: 768px) {
+            #game-container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            #scene-container {
+                padding: 15px;
+                max-height: 70vh;
+            }
+            
+            .choices {
+                margin-top: 20px;
+            }
+            
+            #inventory {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .inventory-item {
+                width: 30px;
+                height: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <header>
+            <h1>The Whispering Spires</h1>
+            <div class="subtitle">A Journey Through Realms of Magic</div>
+        </header>
+        
+        <div id="inventory">
+            <div class="inventory-item book-icon" id="book-icon"></div>
+            <div class="inventory-item amulet-icon" id="amulet-icon"></div>
+        </div>
+        
+        <div id="scene-container">
+            <!-- Beginning Scene -->
+            <div class="scene active" id="beginning">
+                <p>You awaken in a strange circular chamber, its walls formed of luminescent crystal that pulses with an ethereal blue light. Three archways lead out from this room, each shimmering with a different colored mist. The air is filled with whispers just beyond comprehension, and you feel a strange tingling in your fingertips—as if magic itself is trying to speak to you.</p>
+                
+                <p>Your last memory is of falling asleep in your own bed, in your own world. How you came to be here remains a mystery.</p>
+                
+                <p>On the floor before you lies a small <span class="artifact-mention book-mention">leather-bound book</span> and a curious <span class="artifact-mention amulet-mention">amulet</span> carved from a material you've never seen before.</p>
+                
+                <div class="choices">
+                    <div class="choice neutral" data-target="the-book">Pick up the book and examine it</div>
+                    <div class="choice neutral" data-target="the-amulet">Take the amulet and study it</div>
+                    <div class="choice crimson" data-target="crimson-archway">Ignore both items and approach the archway filled with crimson mist</div>
+                    <div class="choice emerald" data-target="emerald-archway">Ignore both items and approach the archway filled with emerald mist</div>
+                    <div class="choice violet" data-target="violet-archway">Ignore both items and approach the archway filled with violet mist</div>
+                </div>
+            </div>
+            
+            <!-- The Book Scene -->
+            <div class="scene" id="the-book">
+                <p>The book's cover is warm to the touch, as if it contains something alive. Opening it, you find pages filled with flowing script in a language you've never seen before. Yet, strangely, as you focus on the words, they begin to shift and transform into something you can understand.</p>
+                
+                <p class="whisper">"To the Dreamer who walks between worlds: You have been called to the Whispering Spires, a nexus where reality bends and magic flows like water. A great imbalance threatens not only this realm but all others connected to it—including your own. The Spires have chosen you, for reasons even we do not fully understand. Within you lies a potential that may restore harmony or hasten destruction."</p>
+                
+                <p>The rest of the pages appear blank, though you sense they may reveal more in time.</p>
+                
+                <div class="choices">
+                    <div class="choice neutral" data-target="the-amulet-after-book">Put down the book and pick up the amulet instead</div>
+                    <div class="choice crimson" data-target="crimson-archway-with-book">Take the book with you and approach the crimson archway</div>
+                    <div class="choice emerald" data-target="emerald-archway-with-book">Take the book with you and approach the emerald archway</div>
+                    <div class="choice violet" data-target="violet-archway-with-book">Take the book with you and approach the violet archway</div>
+                </div>
+            </div>
+            
+            <!-- The Amulet Scene -->
+            <div class="scene" id="the-amulet">
+                <p>The amulet is surprisingly lightweight, seemingly carved from a material that shifts between solid and liquid states. As your fingers close around it, a jolt of energy courses through your body. Suddenly, your senses sharpen—the whispers in the chamber become clearer, forming words in a language you somehow understand despite never having heard it before.</p>
+                
+                <p class="whisper">The amulet speaks directly into your mind: "Wielder, I am the Key of Resonance. I can attune you to the magic of this realm, but beware—such power changes those who channel it. Choose your path carefully, for each doorway leads to a different aspect of your potential."</p>
+                
+                <div class="choices">
+                    <div class="choice neutral" data-target="the-book-after-amulet">Put down the amulet and pick up the book instead</div>
+                    <div class="choice crimson" data-target="crimson-archway-with-amulet">Wear the amulet and approach the crimson archway</div>
+                    <div class="choice emerald" data-target="emerald-archway-with-amulet">Wear the amulet and approach the emerald archway</div>
+                    <div class="choice violet" data-target="violet-archway-with-amulet">Wear the amulet and approach the violet archway</div>
+                </div>
+            </div>
+            
+            <!-- The Amulet After Book Scene -->
+            <div class="scene" id="the-amulet-after-book">
+                <p>After setting down the book, you pick up the amulet. It seems to respond to the knowledge you've gained, glowing more intensely. The whispers increase in volume, and you catch fragments about "the Dreamer" and "potential awakened."</p>
+                
+                <p>The amulet melds comfortably against your palm, almost as if it's becoming part of you.</p>
+                
+                <p class="whisper">A voice echoes in your mind: "You've begun to understand your purpose. I am the Key of Resonance, bound to those called by the Spires. Together, we may navigate the currents of magic that flow through this place."</p>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="crimson-archway-with-both">Take both the book and amulet and approach the crimson archway</div>
+                    <div class="choice emerald" data-target="emerald-archway-with-both">Take both the book and amulet and approach the emerald archway</div>
+                    <div class="choice violet" data-target="violet-archway-with-both">Take both the book and amulet and approach the violet archway</div>
+                </div>
+            </div>
+            
+            <!-- The Book After Amulet Scene -->
+            <div class="scene" id="the-book-after-amulet">
+                <p>After placing the amulet down, you pick up the book. To your surprise, more text has appeared on its pages, as if responding to your contact with the amulet.</p>
+                
+                <p class="whisper">"The Key of Resonance has acknowledged you, Dreamer. It will amplify the latent magic within you—for better or worse. The paths before you represent different forms this power might take: Creation, Transformation, or Understanding. None is inherently right or wrong, but all have consequences."</p>
+                
+                <p>You notice that as you hold the book, the amulet on the floor pulses in rhythm with the glowing letters.</p>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="crimson-archway-with-both">Take both the book and amulet and approach the crimson archway</div>
+                    <div class="choice emerald" data-target="emerald-archway-with-both">Take both the book and amulet and approach the emerald archway</div>
+                    <div class="choice violet" data-target="violet-archway-with-both">Take both the book and amulet and approach the violet archway</div>
+                </div>
+            </div>
+            
+            <!-- Crimson Archway Scene -->
+            <div class="scene" id="crimson-archway">
+                <div class="archway crimson-realm">
+                    <p>As you approach the crimson archway, the mist swirls and parts before you. Heat radiates from the passage beyond, not uncomfortable but intense—like standing near a hearth on a cold winter's night. The whispers grow louder, speaking of "the forge of will" and "reality reshaped by desire."</p>
+                    
+                    <p>Through the mist, you glimpse a landscape of floating islands connected by bridges of pure light, hovering above a sea of molten energy.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="realm-of-creation">Enter the crimson archway</div>
+                    <div class="choice emerald" data-target="emerald-archway">Step back and consider the emerald archway instead</div>
+                    <div class="choice violet" data-target="violet-archway">Step back and consider the violet archway instead</div>
+                </div>
+            </div>
+            
+            <!-- Crimson Archway With Book Scene -->
+            <div class="scene" id="crimson-archway-with-book">
+                <div class="archway crimson-realm">
+                    <p>The book in your hands grows warmer as you approach the crimson archway. New words appear on its pages:</p>
+                    
+                    <p class="whisper">"The Realm of Creation awaits, where thought becomes form and will becomes reality. Those who master this domain can forge new wonders—or unleash terrible destruction. The Spires have long sought one who can bring balance to this volatile power."</p>
+                    
+                    <p>The mist parts, revealing the same landscape of floating islands and bridges of light, but now you notice figures moving about, crafting objects from pure energy.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="realm-of-creation-with-book">Enter the crimson archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Crimson Archway With Amulet Scene -->
+            <div class="scene" id="crimson-archway-with-amulet">
+                <div class="archway crimson-realm">
+                    <p>The amulet pulses with increasing intensity as you near the crimson archway, growing almost hot against your skin. The voice in your mind speaks more urgently:</p>
+                    
+                    <p class="whisper">"The Realm of Creation calls to you. Your desires could take physical form there—a dangerous power for one untrained. Yet I sense in you the potential for restraint that others have lacked."</p>
+                    
+                    <p>Through the mist, the floating islands appear more detailed. You can see towers of impossible architecture and gardens where plants of crystal and flame grow side by side.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="realm-of-creation-with-amulet">Enter the crimson archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Crimson Archway With Both Scene -->
+            <div class="scene" id="crimson-archway-with-both">
+                <div class="archway crimson-realm">
+                    <p>With both the book and amulet in your possession, the crimson archway reacts dramatically. The mist coalesces into swirling patterns that seem almost like written spells. The book flips open to a detailed illustration of the realm beyond, while the amulet thrums with power.</p>
+                    
+                    <p class="whisper">A harmonized voice—part book, part amulet—speaks to you: "You approach with wisdom and power united. Few have entered the Realm of Creation so well-prepared. Remember: creation without understanding leads to chaos, but creation guided by knowledge can heal even the deepest wounds in reality."</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="realm-of-creation-with-both">Enter the crimson archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Emerald Archway Scene -->
+            <div class="scene" id="emerald-archway">
+                <div class="archway emerald-realm">
+                    <p>The emerald mist coils around you like a living thing as you approach. It carries the scent of rich soil after rain and something more exotic—like herbs you've never encountered. The whispers speak of "renewal," "metamorphosis," and "the endless cycle."</p>
+                    
+                    <p>Through the shifting green vapor, you see a vast forest where trees rise like towers, their canopies merging to form a cathedral of leaves. Strange lights flit between the trunks, and you sense countless eyes watching from the undergrowth.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="realm-of-transformation">Enter the emerald archway</div>
+                    <div class="choice crimson" data-target="crimson-archway">Step back and consider the crimson archway instead</div>
+                    <div class="choice violet" data-target="violet-archway">Step back and consider the violet archway instead</div>
+                </div>
+            </div>
+            
+            <!-- Emerald Archway With Book Scene -->
+            <div class="scene" id="emerald-archway-with-book">
+                <div class="archway emerald-realm">
+                    <p>The pages of the book ripple as if caught in a breeze as you approach the emerald archway. New text flows across the paper:</p>
+                    
+                    <p class="whisper">"The Realm of Transformation embodies change in all its forms—growth and decay, evolution and regression. Those who walk this path learn that nothing is permanent, yet everything persists in some form. The balance between creation and destruction hangs precariously here."</p>
+                    
+                    <p>Through the mist, the forest appears more clearly. You notice now that some trees are partially transformed into crystal, others into water that somehow maintains the shape of bark and branches.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="realm-of-transformation-with-book">Enter the emerald archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Emerald Archway With Amulet Scene -->
+            <div class="scene" id="emerald-archway-with-amulet">
+                <div class="archway emerald-realm">
+                    <p>The amulet pulses with a soothing rhythm as you approach the emerald archway. The voice speaks with curiosity:</p>
+                    
+                    <p class="whisper">"The Realm of Transformation calls to you—a place of constant change and adaptation. Your presence there would itself be transformative. I wonder what you might become, and what might become of you."</p>
+                    
+                    <p>Through the mist, you now notice that the creatures moving among the trees are in various states of metamorphosis—part animal, part plant, part elemental force—yet they move with grace and purpose.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="realm-of-transformation-with-amulet">Enter the emerald archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Emerald Archway With Both Scene -->
+            <div class="scene" id="emerald-archway-with-both">
+                <div class="archway emerald-realm">
+                    <p>Approaching with both artifacts, the emerald mist forms into complex spiraling patterns. The book opens to reveal illustrations of creatures mid-transformation, while the amulet emits a soft, pulsing light that causes the mist to change colors wherever it touches.</p>
+                    
+                    <p class="whisper">The harmonized voice speaks: "You come well-equipped to the Realm of Transformation. With knowledge to guide you and power to protect you, you might succeed where others have been overwhelmed by the constant flux. Remember: true transformation comes not from resisting change, but from directing it with purpose."</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="realm-of-transformation-with-both">Enter the emerald archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Violet Archway Scene -->
+            <div class="scene" id="violet-archway">
+                <div class="archway violet-realm">
+                    <p>The violet mist parts reluctantly as you draw near, revealing glimpses of what lies beyond only to obscure them again moments later. Unlike the other archways, this one is silent—the whispers cease entirely, replaced by a profound sense of vastness that makes your mind feel small by comparison.</p>
+                    
+                    <p>In brief moments of clarity, you see a landscape of floating libraries and observatories, suspended amidst a cosmos where stars and symbols are indistinguishable from one another.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="realm-of-understanding">Enter the violet archway</div>
+                    <div class="choice crimson" data-target="crimson-archway">Step back and consider the crimson archway instead</div>
+                    <div class="choice emerald" data-target="emerald-archway">Step back and consider the emerald archway instead</div>
+                </div>
+            </div>
+            
+            <!-- Violet Archway With Book Scene -->
+            <div class="scene" id="violet-archway-with-book">
+                <div class="archway violet-realm">
+                    <p>The book trembles in your hands as you approach the violet archway, its pages flipping rapidly before settling on new text:</p>
+                    
+                    <p class="whisper">"The Realm of Understanding holds the collective knowledge of countless worlds and times. Many have lost themselves in its infinite depths, becoming mere observers rather than participants in the great tapestry of existence. Yet true wisdom lies in knowing when to learn and when to act."</p>
+                    
+                    <p>Through momentary gaps in the mist, you see robed figures moving between the floating structures, carrying scrolls and crystals that glow with contained information.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="realm-of-understanding-with-book">Enter the violet archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Violet Archway With Amulet Scene -->
+            <div class="scene" id="violet-archway-with-amulet">
+                <div class="archway violet-realm">
+                    <p>The amulet grows utterly still as you near the violet archway, its usual pulse frozen in a moment of perfect silence. The voice, when it finally speaks, is hushed with reverence:</p>
+                    
+                    <p class="whisper">"The Realm of Understanding... even I cannot fully comprehend its depths. Your mind would be expanded beyond mortal limits there—a process as painful as it is enlightening. Few return unchanged, if they return at all."</p>
+                    
+                    <p>The mist parts long enough for you to see that some of the robed figures moving among the floating libraries have multiple heads, or eyes that seem to look in different directions simultaneously—perhaps even into different times.</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="realm-of-understanding-with-amulet">Enter the violet archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- Violet Archway With Both Scene -->
+            <div class="scene" id="violet-archway-with-both">
+                <div class="archway violet-realm">
+                    <p>As you approach with both artifacts, the violet mist becomes perfectly still, as if time itself has paused. The book opens to pages filled with complex equations and diagrams that seem to move despite being ink on paper. The amulet emits a pure, unwavering light.</p>
+                    
+                    <p class="whisper">The harmonized voice speaks with unusual solemnity: "You stand at the threshold of the Realm of Understanding with both the means to record knowledge and the power to withstand its transformative effects. Even so, be warned: some truths change not just what you know, but what you are."</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="realm-of-understanding-with-both">Enter the violet archway</div>
+                    <div class="choice neutral" data-target="beginning">Step back and reconsider your options</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Creation Scene -->
+            <div class="scene" id="realm-of-creation">
+                <div class="crimson-realm">
+                    <p>You step through the crimson archway and are immediately enveloped in warmth. Your body feels lighter, almost buoyant, and you find yourself standing on a small island of red stone that floats amidst a sea of swirling energy.</p>
+                    
+                    <p>Nearby, a group of beings with skin like burnished copper are shaping pure light into objects—tools, art, even small creatures that flutter away once formed. They notice your arrival and halt their work, staring with eyes that flicker like flames.</p>
+                    
+                    <p>One approaches, towering over you. <span class="character-name">"A Dreamer,"</span> it says, voice like the crackling of a fire. <span class="character-name">"Have you come to learn Creation, or to fix what has been broken?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="creation-learning">"I've come to learn."</div>
+                    <div class="choice crimson" data-target="creation-fixing">"I've come to fix something broken."</div>
+                    <div class="choice crimson" data-target="creation-uncertain">"I don't know why I'm here."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Creation With Book Scene -->
+            <div class="scene" id="realm-of-creation-with-book">
+                <div class="crimson-realm">
+                    <p>As you step through the crimson archway, the book in your hands flares with brilliant light. The copper-skinned beings working with light stop and turn toward you, their fiery eyes widening.</p>
+                    
+                    <p><span class="character-name">"A Dreamer with the Codex,"</span> one whispers, and they bow their heads in unison.</p>
+                    
+                    <p>The tallest among them approaches. <span class="character-name">"The book you carry contains the fundamental principles of Creation. With it, you could learn in days what takes us centuries. But knowledge without skill can be dangerous here, where thought shapes reality."</span></p>
+                    
+                    <p>The being extends a hand. <span class="character-name">"I am Pyrel, Master Shaper. Would you learn from me, or do you seek the Breach that threatens our realm?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="creation-learning-book">"I would learn from you."</div>
+                    <div class="choice crimson" data-target="creation-breach-book">"Tell me about this Breach."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Creation With Amulet Scene -->
+            <div class="scene" id="realm-of-creation-with-amulet">
+                <div class="crimson-realm">
+                    <p>The moment you cross the threshold, the amulet around your neck flares with crimson light, matching the energy that swirls around the floating islands. The copper-skinned beings working nearby drop their creations in shock.</p>
+                    
+                    <p>They converse rapidly in a language of musical tones before one approaches you cautiously. <span class="character-name">"The Key of Resonance has chosen a new bearer,"</span> it says, studying you intently. <span class="character-name">"It has been generations since it left our realm."</span></p>
+                    
+                    <p>The being bows slightly. <span class="character-name">"I am Azren, Guardian of the Crucible. The Key grants you power here, but power without direction can be catastrophic. What do you seek in the Realm of Creation?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="creation-power-amulet">"I want to master this power."</div>
+                    <div class="choice crimson" data-target="creation-answers-amulet">"I'm looking for answers about why I was brought here."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Creation With Both Scene -->
+            <div class="scene" id="realm-of-creation-with-both">
+                <div class="crimson-realm">
+                    <p>As you pass through the archway, both artifacts activate simultaneously. The book levitates from your grasp, pages turning rapidly, while the amulet emits rays of light that create a protective circle around you.</p>
+                    
+                    <p>The copper-skinned beings fall to their knees. <span class="character-name">"The Convergence,"</span> they whisper.</p>
+                    
+                    <p>A being with skin like molten gold steps forward from among them. <span class="character-name">"I am Helios, Elder of the Forge Eternal. For millennia, we have awaited one who would carry both the Codex of Forms and the Key of Resonance. You have come at our greatest hour of need."</span></p>
+                    
+                    <p>Helios gestures, and the air shimmers to reveal a massive tear in reality hovering above the largest island—a wound in the fabric of the realm that pulses with chaotic energy.</p>
+                    
+                    <p><span class="character-name">"The Breach grows. Creation itself unravels. Will you help us seal it, Dreamer?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="creation-breach-both">"I will help seal the Breach."</div>
+                    <div class="choice crimson" data-target="creation-understanding-both">"I need to understand more before I commit."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Transformation Scene -->
+            <div class="scene" id="realm-of-transformation">
+                <div class="emerald-realm">
+                    <p>Stepping through the emerald archway, you're enveloped in a cool mist that smells of growth and decay. When it clears, you stand in a forest unlike any you've seen—trees with trunks wider than houses reach toward a canopy that seems to blend with the stars above.</p>
+                    
+                    <p>Some trees bear fruit that glows and shifts form. Others have bark that flows like water. Small creatures scurry around you, transforming as they move—from rodent to bird to insect and back again.</p>
+                    
+                    <p>A figure emerges from behind a nearby tree—humanoid but with skin like bark and hair of flowing leaves. <span class="character-name">"Another seeker,"</span> it says in a voice like rustling foliage. <span class="character-name">"What transformation do you desire, traveler?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="transformation-self">"I seek to transform myself."</div>
+                    <div class="choice emerald" data-target="transformation-understanding">"I seek to understand transformation."</div>
+                    <div class="choice emerald" data-target="transformation-uncertain">"I don't know what I'm seeking."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Transformation With Book Scene -->
+            <div class="scene" id="realm-of-transformation-with-book">
+                <div class="emerald-realm">
+                    <p>As you enter the emerald archway, the pages of the book begin to sprout tiny, luminescent plants that curl around your fingers before fading back into ink. The forest beyond seems to respond to the book's presence—branches lean closer, and the strange creatures gather to observe.</p>
+                    
+                    <p>The bark-skinned figure who greets you gasps softly. <span class="character-name">"The Everchanging Codex returns to us,"</span> it says, extending elongated fingers toward the book but not touching it. <span class="character-name">"I am Sylvari, Keeper of Cycles."</span></p>
+                    
+                    <p>Sylvari's eyes—amber with vertical pupils—study you intently. <span class="character-name">"The Codex contains the patterns of all possible transformations. With it, you could reshape anything—or anyone. Do you come to study our ways, or have you sensed the imbalance that threatens the Great Cycle?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="transformation-learning-book">"I would learn about these transformations."</div>
+                    <div class="choice emerald" data-target="transformation-imbalance-book">"Tell me about this imbalance."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Transformation With Amulet Scene -->
+            <div class="scene" id="realm-of-transformation-with-amulet">
+                <div class="emerald-realm">
+                    <p>Upon crossing the threshold, the amulet pulses with green energy that spreads through your body. You feel a momentary discomfort as your senses shift—suddenly you can perceive the slow growth of the trees and the rapid heartbeats of tiny creatures hiding in the undergrowth.</p>
+                    
+                    <p>The bark-skinned figure approaches, eyes wide. <span class="character-name">"The Key of Resonance,"</span> it whispers, <span class="character-name">"I never thought I would see it in my lifetime."</span></p>
+                    
+                    <p>It composes itself, offering a bow that sends leaves cascading from its shoulders. <span class="character-name">"I am Thoralis, Guardian of Metamorphosis. The Key allows you to catalyze or halt transformations with but a thought—a power that demands great responsibility. What brings you to our realm, bearer?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="transformation-control-amulet">"I want to learn to control this power."</div>
+                    <div class="choice emerald" data-target="transformation-discovery-amulet">"I'm trying to discover why I was brought here."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Transformation With Both Scene -->
+            <div class="scene" id="realm-of-transformation-with-both">
+                <div class="emerald-realm">
+                    <p>When you enter with both artifacts, the forest responds dramatically. Trees bend to form an archway over your path, while flowers bloom and wither in rapid cycles around you. The book's pages flip to show illustrations of the very creatures watching you, while the amulet thrums with a rhythm that matches the heartbeat of the forest itself.</p>
+                    
+                    <p>Three figures emerge—one with bark-skin, one formed of flowing water, and one that seems composed of living crystal. They speak in unison: <span class="character-name">"The Confluence walks among us."</span></p>
+                    
+                    <p>The bark-skinned one steps forward. <span class="character-name">"I am Verdantis, Elder of the Eternal Grove. These are my siblings: Rivalis of the Flowing Forms and Crystalia of the Faceted Paths. Together, we oversee all transformations in this realm."</span></p>
+                    
+                    <p>Verdantis gestures, and a clearing opens to reveal a massive tree whose branches extend not just upward but sideways into what appear to be different realities. Parts of the tree are withering, turning to dust even as other sections grow too rapidly.</p>
+                    
+                    <p><span class="character-name">"The World Tree suffers from a malignant transformation that we cannot control. Its roots connect all realms, including your own. If it dies, the boundaries between worlds will collapse."</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice emerald" data-target="transformation-healing-both">"I'll help heal the World Tree."</div>
+                    <div class="choice emerald" data-target="transformation-investigation-both">"I need to understand what's causing this first."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Understanding Scene -->
+            <div class="scene" id="realm-of-understanding">
+                <div class="violet-realm">
+                    <p>Passing through the violet archway, you experience a moment of vertigo as your perspective shifts dramatically. You find yourself on a platform of polished stone that floats among countless similar structures, all connected by bridges of pure light that appear and disappear as needed.</p>
+                    
+                    <p>Each platform holds different structures—libraries with books that write themselves, observatories pointed at stars that form patterns like complex equations, meditation gardens where robed figures sit in perfect stillness.</p>
+                    
+                    <p>One such figure approaches you—humanoid but with skin that seems to contain shifting constellations. Its eyes are entirely white, yet you feel them perceiving not just your body but your thoughts.</p>
+                    
+                    <p><span class="character-name">"Your consciousness ripples across the noosphere,"</span> it says in a voice that sounds directly in your mind. <span class="character-name">"What knowledge do you seek, wanderer?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="understanding-self">"I seek knowledge about myself."</div>
+                    <div class="choice violet" data-target="understanding-purpose">"I seek knowledge about this place and why I'm here."</div>
+                    <div class="choice violet" data-target="understanding-uncertain">"I don't know what I'm seeking yet."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Understanding With Book Scene -->
+            <div class="scene" id="realm-of-understanding-with-book">
+                <div class="violet-realm">
+                    <p>As you cross into the realm, the book floats from your hands and hovers before you, its pages turning by themselves to reveal text and diagrams that shift faster than you can comprehend. The star-skinned being observing you inclines its head in a gesture of respect.</p>
+                    
+                    <p><span class="character-name">"The Infinite Codex returns,"</span> it says, telepathic voice tinged with surprise. <span class="character-name">"I am Nexus, Curator of Collected Wisdom."</span></p>
+                    
+                    <p>Nexus gestures, and a bridge of light forms, leading to a massive domed building. <span class="character-name">"The Codex is both question and answer, map and territory. With it, you could access the accumulated knowledge of a thousand civilizations. Have you come to contribute to our archives, or do you seek understanding about the Dissonance that grows between realms?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="understanding-archives-book">"I would explore your archives."</div>
+                    <div class="choice violet" data-target="understanding-dissonance-book">"Tell me about this Dissonance."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Understanding With Amulet Scene -->
+            <div class="scene" id="realm-of-understanding-with-amulet">
+                <div class="violet-realm">
+                    <p>When you enter wearing the amulet, it emits a violet glow that encases you in a bubble of light. Instantaneously, you become aware of thousands of conversations happening across the floating platforms—snippets of knowledge and debate flowing through your mind like water.</p>
+                    
+                    <p>The star-skinned being that approaches you observes the amulet with fascination. <span class="character-name">"The Key of Resonance, synchronized to a mind from the physical realm. Remarkable."</span></p>
+                    
+                    <p>It introduces itself with a gentle mental touch. <span class="character-name">"I am Qualia, Observer of Patterns. The Key you wear allows you to access the collective understanding of all who have studied here—but such access can overwhelm an unprepared consciousness. What knowledge calls you to our realm?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="understanding-amulet-mastery">"I want to learn how to use this amulet properly."</div>
+                    <div class="choice violet" data-target="understanding-origin-amulet">"I need to know why I was brought to the Whispering Spires."</div>
+                </div>
+            </div>
+            
+            <!-- The Realm of Understanding With Both Scene -->
+            <div class="scene" id="realm-of-understanding-with-both">
+                <div class="violet-realm">
+                    <p>Upon your entrance with both artifacts, all activity in the realm ceases. The scholars, observers, and contemplatives turn toward you in perfect synchronicity. The book and amulet resonate with each other, creating a harmonic tone that spreads throughout the floating platforms.</p>
+                    
+                    <p>A being approaches—taller than the others, with skin that shows not just stars but entire galaxies in motion. It does not speak but instead shares a concept directly with your mind: <span class="character-name">Recognition</span>.</p>
+                    
+                    <p>Images flow into your consciousness: the three realms you've glimpsed, connected by the Whispering Spires; a growing distortion that threatens to sever these connections; previous "Dreamers" who attempted to address the distortion and failed.</p>
+                    
+                    <p>The being finally introduces itself: <span class="character-name">"I am Omniscience, First Scholar of the Cosmic Archive. You stand before us as the Confluence—bearer of both the means to understand the multiverse's pattern and the power to reshape it. The Dissonance between realms grows critical. The barriers thin. Chaos seeps through."</span></p>
+                    
+                    <p>A gesture brings forth a floating model of interconnected spheres, three larger ones representing the realms you've seen, with countless smaller ones linked to them. Several connections are fraying or broken entirely.</p>
+                    
+                    <p><span class="character-name">"Will you use your unique position to restore harmony to the Spires, Dreamer?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="understanding-harmony-both">"I'll help restore the harmony between realms."</div>
+                    <div class="choice violet" data-target="understanding-comprehension-both">"I need to fully comprehend the Dissonance first."</div>
+                </div>
+            </div>
+            
+            <!-- Creation Learning Path -->
+            <div class="scene" id="creation-learning">
+                <div class="crimson-realm">
+                    <p>The copper-skinned being's eyes flicker with interest. <span class="character-name">"A wise choice. To create without understanding is to invite disaster."</span></p>
+                    
+                    <p>It gestures for you to follow, leading you to a small floating island where several younger copper beings are practicing. They form basic shapes from light—spheres, cubes, simple tools.</p>
+                    
+                    <p><span class="character-name">"I am Emberforge,"</span> your guide says. <span class="character-name">"In the Realm of Creation, thought becomes matter, desire becomes form. The difficulty lies not in creating, but in controlling what you create."</span></p>
+                    
+                    <p>Emberforge points to an empty space. <span class="character-name">"Focus your mind. Imagine something simple—a sphere of light perhaps. See it clearly in your thoughts, then will it into being."</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="creation-learning-success">Try to create a sphere of light</div>
+                    <div class="choice crimson" data-target="creation-refuse">"I don't think I'm capable of this."</div>
+                </div>
+            </div>
+            
+            <!-- Creation Fixing Path -->
+            <div class="scene" id="creation-fixing">
+                <div class="crimson-realm">
+                    <p>The being's eyes flash with sudden intensity. <span class="character-name">"You perceive it then, even without the Codex or Key. The Breach grows, threatening not just our realm but all connected worlds."</span></p>
+                    
+                    <p>It studies you more carefully. <span class="character-name">"I am Cindersoul, Guardian of the Eternal Flame. The damage is beyond my skill to repair, but perhaps a Dreamer..."</span></p>
+                    
+                    <p>Cindersoul gestures, and the floating island begins to move, carrying you both toward a larger landmass where dozens of copper-skinned beings are gathered around what appears to be a tear in reality itself—a jagged hole that pulses with chaotic, discordant energy.</p>
+                    
+                    <p><span class="character-name">"The Breach appeared a cycle ago, small at first, but growing. On the other side lies not another realm, but something... else. A place where creation has no rules, no forms. It leaks into our world, corrupting what it touches."</span></p>
+                    
+                    <p>Cindersoul points to several creatures and objects nearby that appear warped, parts of them shifting randomly or vanishing altogether. <span class="character-name">"We've tried to seal it through pure creation, but our efforts only seem to feed it. Perhaps an outsider's perspective is needed."</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="creation-breach-examine">"Let me examine the Breach more closely."</div>
+                    <div class="choice crimson" data-target="creation-breach-hesitate">"I'm not sure I can help with something this dangerous."</div>
+                </div>
+            </div>
+
+            <!-- Creation Uncertain Path -->
+            <div class="scene" id="creation-uncertain">
+                <div class="crimson-realm">
+                    <p>The copper-skinned being tilts its head, fiery eyes studying you with curiosity. <span class="character-name">"You come without purpose, yet the Spires chose to bring you here. Interesting."</span></p>
+                    
+                    <p>It gestures around at the floating islands and the swirling energy below. <span class="character-name">"I am Flameheart, and this is the Realm of Creation, where thought becomes reality. Those with strong wills can shape matter itself into whatever they desire."</span></p>
+                    
+                    <p>Flameheart watches as other beings nearby craft intricate objects from pure light. <span class="character-name">"Our realm faces a growing threat—a Breach in reality that corrupts everything it touches. Yet I sense you are not ready to confront such a danger."</span></p>
+                    
+                    <p>It offers you an outstretched hand. <span class="character-name">"Perhaps you should first learn what you are capable of here. Would you like me to show you the basics of Creation, or would you prefer to explore our realm at your own pace?"</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice crimson" data-target="creation-learning">"Teach me about Creation."</div>
+                    <div class="choice crimson" data-target="creation-explore">"I'll explore on my own for now."</div>
+                </div>
+            </div>
+            
+            <!-- More scenes would continue here... -->
+            
+            <!-- Understanding Harmony Path -->
+            <div class="scene" id="understanding-harmony-both">
+                <div class="violet-realm">
+                    <p>Omniscience's form seems to shimmer with approval as you make your decision. <span class="character-name">"You choose the path of balance—the most difficult, yet the most promising."</span></p>
+                    
+                    <p>The cosmic being extends what you interpret as hands, though they appear more like swirling nebulae. The Codex and the Key float from you, hovering between you and Omniscience.</p>
+                    
+                    <p><span class="character-name">"To restore harmony, you must understand the nature of the Dissonance. It is not merely a physical phenomenon, but a conceptual one—a contradiction that has manifested across all realms."</span></p>
+                    
+                    <p>Images flood your mind: the Breach in the Realm of Creation, the corrupted World Tree in the Realm of Transformation, and here, in Understanding, a growing void in the collective knowledge that threatens to unravel all comprehension.</p>
+                    
+                    <p><span class="character-name">"These are not separate problems, but manifestations of the same imbalance. The Whispering Spires—the nexus point connecting our realms—has begun to falter. As the Confluence, you have the unique ability to perceive and address this imbalance from all perspectives."</span></p>
+                    
+                    <p>Omniscience reveals a path of violet light extending from the platform where you stand. <span class="character-name">"This will take you to the heart of the Archive, where the original blueprints of the Spires are kept. With the Codex and Key, you may be able to perceive the flaw in its design—and with our guidance, perhaps repair it."</span></p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice violet" data-target="understanding-archive-journey">"Lead me to the Archive."</div>
+                    <div class="choice violet" data-target="understanding-question-plan">"I have questions about this plan."</div>
+                </div>
+            </div>
+            
+            <!-- Creation Ending Example -->
+            <div class="scene" id="ending-creator">
+                <div class="crimson-realm">
+                    <h2>The Creator</h2>
+                    
+                    <p>As the final pieces of the Breach seal together under your will, a wave of crimson energy pulses outward, washing over the entire Realm of Creation. The copper-skinned beings watch in awe as the tears in reality mend themselves, stabilizing the connections between worlds.</p>
+                    
+                    <p>Helios approaches, golden skin glowing with renewed vigor. <span class="character-name">"The Dreamer has succeeded where we failed. You have not merely repaired the damage, but strengthened the fundamental patterns of Creation itself."</span></p>
+                    
+                    <p>The Codex floats before you, its pages now filled with intricate diagrams and formulas representing your understanding of Creation's true nature. The Key of Resonance pulses in harmony with your heartbeat, no longer a separate artifact but an extension of your will.</p>
+                    
+                    <p>You realize that you could return to your world now—the path home lies clear in your mind. Yet you also sense the potential that remains. With your newfound power, you could reshape reality according to your vision, create wonders beyond imagination.</p>
+                    
+                    <p>The choice is yours: return home forever changed by your experiences, or remain as a guardian of Creation, a force for order in a multiverse of infinite possibilities.</p>
+                    
+                    <p>Whatever you decide, you are no longer merely human. You have become The Creator, master of form and substance, weaver of realities.</p>
+                    
+                    <p class="whisper">As you contemplate your decision, you hear a familiar whisper from the Spires: "All paths remain open to the one who understands the true nature of possibility..."</p>
+                </div>
+                
+                <div class="choices">
+                    <div class="choice neutral" data-target="beginning">Begin a New Journey</div>
+                </div>
+            </div>
+            
+            <!-- More endings would be included here... -->
+<div class="scene" id="creation-amulet-crystal">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-crystal would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-feather">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-feather would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-energy">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-energy would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-vision">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-vision would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-hesitate">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-hesitate would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-attempt">
+    <div class="crimson-realm">
+        <p>Content for creation-both-attempt would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-question">
+    <div class="crimson-realm">
+        <p>Content for creation-both-question would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-mechanics">
+    <div class="crimson-realm">
+        <p>Content for creation-both-mechanics would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-origins">
+    <div class="crimson-realm">
+        <p>Content for creation-both-origins would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-consequences">
+    <div class="crimson-realm">
+        <p>Content for creation-both-consequences would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-both-transfer">
+    <div class="violet-realm">
+        <p>Content for understanding-both-transfer would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-both-experiential">
+    <div class="violet-realm">
+        <p>Content for understanding-both-experiential would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-leaf">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-leaf would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-stone">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-stone would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-water">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-water would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-examine">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-examine would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-history">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-history would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-grow">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-grow would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-revert">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-revert would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-different">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-different would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-pool">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-pool would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-question">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-question would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-attempt">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-attempt would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-question">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-question would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-veins">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-veins would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-roots">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-roots would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-energy">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-energy would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-whispering">
+    <div class="violet-realm">
+        <p>Content for understanding-book-whispering would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-artifacts">
+    <div class="violet-realm">
+        <p>Content for understanding-book-artifacts would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-dreamers">
+    <div class="violet-realm">
+        <p>Content for understanding-book-dreamers would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-origin">
+    <div class="violet-realm">
+        <p>Content for understanding-book-origin would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-current">
+    <div class="violet-realm">
+        <p>Content for understanding-book-current would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-future">
+    <div class="violet-realm">
+        <p>Content for understanding-book-future would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-perception">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-perception would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-abilities">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-abilities would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-connect">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-connect would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-previous">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-previous would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-enter-archive">
+    <div class="violet-realm">
+        <p>Content for understanding-enter-archive would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-prepare-more">
+    <div class="violet-realm">
+        <p>Content for understanding-prepare-more would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-alternatives">
+    <div class="violet-realm">
+        <p>Content for understanding-alternatives would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+<div class="scene" id="creation-amulet-crystal">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-crystal would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-feather">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-feather would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-energy">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-energy would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-vision">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-vision would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-amulet-hesitate">
+    <div class="crimson-realm">
+        <p>Content for creation-amulet-hesitate would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-attempt">
+    <div class="crimson-realm">
+        <p>Content for creation-both-attempt would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-question">
+    <div class="crimson-realm">
+        <p>Content for creation-both-question would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-mechanics">
+    <div class="crimson-realm">
+        <p>Content for creation-both-mechanics would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-origins">
+    <div class="crimson-realm">
+        <p>Content for creation-both-origins would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-both-consequences">
+    <div class="crimson-realm">
+        <p>Content for creation-both-consequences would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-both-transfer">
+    <div class="violet-realm">
+        <p>Content for understanding-both-transfer would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-both-experiential">
+    <div class="violet-realm">
+        <p>Content for understanding-both-experiential would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-leaf">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-leaf would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-stone">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-stone would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-water">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-water would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-examine">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-examine would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-book-history">
+    <div class="emerald-realm">
+        <p>Content for transformation-book-history would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-grow">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-grow would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-revert">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-revert would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-different">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-different would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-pool">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-pool would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-amulet-question">
+    <div class="emerald-realm">
+        <p>Content for transformation-amulet-question would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-attempt">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-attempt would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-question">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-question would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-veins">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-veins would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-roots">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-roots would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-both-energy">
+    <div class="emerald-realm">
+        <p>Content for transformation-both-energy would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-whispering">
+    <div class="violet-realm">
+        <p>Content for understanding-book-whispering would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-artifacts">
+    <div class="violet-realm">
+        <p>Content for understanding-book-artifacts would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-dreamers">
+    <div class="violet-realm">
+        <p>Content for understanding-book-dreamers would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-origin">
+    <div class="violet-realm">
+        <p>Content for understanding-book-origin would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-current">
+    <div class="violet-realm">
+        <p>Content for understanding-book-current would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-book-future">
+    <div class="violet-realm">
+        <p>Content for understanding-book-future would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-perception">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-perception would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-abilities">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-abilities would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-connect">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-connect would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-amulet-previous">
+    <div class="violet-realm">
+        <p>Content for understanding-amulet-previous would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-enter-archive">
+    <div class="violet-realm">
+        <p>Content for understanding-enter-archive would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-prepare-more">
+    <div class="violet-realm">
+        <p>Content for understanding-prepare-more would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-alternatives">
+    <div class="violet-realm">
+        <p>Content for understanding-alternatives would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+<!-- Transformation Realm Paths -->
+<div class="scene" id="transformation-self">
+    <div class="emerald-realm">
+        <p>The bark-skinned being's eyes light up with interest. <span class="character-name">"Self-transformation is the most profound journey one can undertake. It requires courage to reshape one's own essence."</span></p>
+        
+        <p>With a gesture, the being creates a small pool of crystal-clear water that reflects your image—but not quite perfectly. In the reflection, you appear slightly different, as if viewing a potential version of yourself.</p>
+        
+        <p><span class="character-name">"I am Willowsong,"</span> the being says, <span class="character-name">"and I guide those who seek to evolve. Before you can transform yourself, you must truly know who you are. What aspect of yourself do you wish to change, traveler?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice emerald" data-target="transformation-self-strength">"I wish to become stronger."</div>
+        <div class="choice emerald" data-target="transformation-self-wisdom">"I seek greater wisdom."</div>
+        <div class="choice emerald" data-target="beginning">"I need time to consider this further."</div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-understanding">
+    <div class="emerald-realm">
+        <p>The bark-skinned being nods thoughtfully. <span class="character-name">"To understand transformation is to understand life itself—birth, growth, death, renewal. The cycle that binds all existence."</span></p>
+        
+        <p>With a wave of its hand, a seed appears, floating between you. In accelerated time, you watch it sprout, grow into a sapling, then a tree, then wither and return to the soil—all in moments.</p>
+        
+        <p><span class="character-name">"I am Verdantell,"</span> the being introduces itself. <span class="character-name">"Scholar of the Endless Cycle. Would you prefer to observe transformation from a distance, or experience it directly? Both paths lead to understanding, but in very different ways."</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice emerald" data-target="transformation-understanding-observe">"I'll observe and learn."</div>
+        <div class="choice emerald" data-target="transformation-understanding-experience">"I want to experience transformation firsthand."</div>
+        <div class="choice emerald" data-target="beginning">"Perhaps I should explore other options first."</div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-uncertain">
+    <div class="emerald-realm">
+        <p>The bark-skinned being's expression softens. <span class="character-name">"Uncertainty is the seed from which all exploration grows. It is natural to feel adrift in a realm where nothing remains the same for long."</span></p>
+        
+        <p>Around you, the forest shifts subtly—colors deepening, plants growing and receding, as if the environment itself is responding to your uncertainty.</p>
+        
+        <p><span class="character-name">"I am Mossheart,"</span> the being says. <span class="character-name">"In the Realm of Transformation, those without direction often find their path by helping others with theirs. Our World Tree suffers from an unnatural transformation that threatens all realms. Would you aid us, or would you prefer to wander and discover your own purpose?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice emerald" data-target="transformation-aid-tree">"I'll help with the World Tree."</div>
+        <div class="choice emerald" data-target="transformation-explore">"I'd like to wander and explore."</div>
+        <div class="choice emerald" data-target="beginning">"I need to reconsider my choices."</div>
+    </div>
+</div>
+
+<!-- Understanding Realm Paths -->
+<div class="scene" id="understanding-self">
+    <div class="violet-realm">
+        <p>The star-skinned being inclines its head. <span class="character-name">"The quest for self-knowledge is perhaps the most fundamental journey of consciousness. Many spend lifetimes seeking, yet never truly find."</span></p>
+        
+        <p>With a gentle mental touch, the being creates a crystalline structure in the air between you—a complex, ever-shifting lattice that somehow feels deeply familiar.</p>
+        
+        <p><span class="character-name">"I am Luminex,"</span> it introduces itself directly to your mind. <span class="character-name">"This is a psychic reflection of your neural patterns—the physical foundation of your self. But is this truly you? Or merely the vessel? How deep shall we explore?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice violet" data-target="understanding-self-memories">"Show me my core memories."</div>
+        <div class="choice violet" data-target="understanding-self-potential">"I want to see my untapped potential."</div>
+        <div class="choice violet" data-target="beginning">"This feels too invasive. I should reconsider."</div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-purpose">
+    <div class="violet-realm">
+        <p>The star-skinned being's expression shifts to something approximating curiosity. <span class="character-name">"Purpose and place—questions that echo across all planes of existence. The Whispering Spires do not call without reason, yet that reason may be more complex than you imagine."</span></p>
+        
+        <p>Around you, the floating platforms rearrange themselves, forming a spiral pattern with your platform at the center. Star-charts and diagrams materialize in the air.</p>
+        
+        <p><span class="character-name">"I am Astralys,"</span> the being communicates. <span class="character-name">"To understand your purpose here, we must first understand the nature of the Spires themselves. Would you prefer to learn through direct information transfer—rapid but potentially overwhelming—or through guided discovery?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice violet" data-target="understanding-purpose-transfer">"I'll risk the direct transfer."</div>
+        <div class="choice violet" data-target="understanding-purpose-guided">"Guide me through this discovery."</div>
+        <div class="choice violet" data-target="beginning">"I need more time to prepare myself."</div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-uncertain">
+    <div class="violet-realm">
+        <p>The star-skinned being emanates a sense of calm acceptance. <span class="character-name">"Uncertainty is not ignorance, but the recognition of complexity. It is the beginning of wisdom."</span></p>
+        
+        <p>The platform beneath you transforms into a transparent crystal, revealing countless other platforms below, each containing different scenes and beings engaged in various studies.</p>
+        
+        <p><span class="character-name">"I am Voidwhisper,"</span> the being introduces itself. <span class="character-name">"Those who arrive without specific questions often harbor the most important ones, buried beneath layers of assumption. Would you prefer to observe others seeking knowledge, or shall we explore the questions you have not yet recognized within yourself?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice violet" data-target="understanding-observe-others">"I'll observe other seekers."</div>
+        <div class="choice violet" data-target="understanding-inner-questions">"Help me find my unasked questions."</div>
+        <div class="choice violet" data-target="beginning">"I should start over with more clarity."</div>
+    </div>
+</div>
+
+<!-- Creation Learning Success Path -->
+<div class="scene" id="creation-learning-success">
+    <div class="crimson-realm">
+        <p>Focusing your mind as instructed, you envision a perfect sphere of light—its dimensions, its luminosity, its gentle pulse. For a moment, nothing happens, but then a tingling sensation spreads through your fingertips.</p>
+        
+        <p>A tiny spark appears in the air before you, wobbling uncertainly. It expands, struggling to hold its shape, but gradually stabilizes into a small, glowing orb that hovers at eye level.</p>
+        
+        <p>Emberforge's eyes widen slightly. <span class="character-name">"Impressive for a first attempt. Most newcomers require days to manifest even the simplest forms."</span></p>
+        
+        <p>The sphere flickers with your momentary pride, growing briefly brighter before settling again. <span class="character-name">"You see? Your creation reflects your thoughts, your emotions. This is both the power and the danger of our realm,"</span> Emberforge explains. <span class="character-name">"Would you like to learn more complex forms, or shall we discuss the Breach that threatens us?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice crimson" data-target="creation-advanced-learning">"Teach me more complex creations."</div>
+        <div class="choice crimson" data-target="creation-breach-discussion">"Tell me about this Breach."</div>
+        <div class="choice crimson" data-target="beginning">"I need to explore other options."</div>
+    </div>
+</div>
+
+<div class="scene" id="creation-refuse">
+    <div class="crimson-realm">
+        <p>You shake your head, doubt creeping in. "I don't think I'm capable of this. In my world, we can't create something from nothing."</p>
+        
+        <p>Emberforge studies you with those flickering eyes, then nods slowly. <span class="character-name">"Your hesitation is understandable. Creation requires belief—in yourself, in the possibility. Without it, the connection cannot form."</span></p>
+        
+        <p>With a casual gesture, Emberforge summons a small flame that dances in their palm. <span class="character-name">"Perhaps demonstration will help. In your world, fire requires fuel, oxygen, heat. Here, it requires only will and imagination."</span></p>
+        
+        <p>The flame transforms, becoming a miniature bird that circles once before dissipating. <span class="character-name">"We can proceed slowly if you prefer, or I can show you the Breach our realm faces. Sometimes, necessity overcomes doubt."</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice crimson" data-target="creation-learning">"Let's try again. I'll make an effort to believe."</div>
+        <div class="choice crimson" data-target="creation-breach-discussion">"Show me the Breach instead."</div>
+        <div class="choice crimson" data-target="beginning">"I should reconsider my approach entirely."</div>
+    </div>
+</div>
+
+<!-- Creation Breach Paths -->
+<div class="scene" id="creation-breach-examine">
+    <div class="crimson-realm">
+        <p>As you approach the jagged tear in reality, an unsettling sensation washes over you—like vertigo, but affecting all senses simultaneously. The Breach pulses with discordant energy, its edges fraying into tendrils that occasionally lash out, transforming whatever they touch into impossible geometries or fragmenting objects into incomplete versions of themselves.</p>
+        
+        <p>Cindersoul stands a respectful distance away. <span class="character-name">"We've tried sealing it with pure creative energy, but it only grows stronger—as if feeding on our efforts. Some believe it's a wound in reality itself, others think it's an intrusion from beyond the known realms."</span></p>
+        
+        <p>You notice patterns in the chaotic energies—fractals that almost form recognizable shapes before collapsing again. There's a strange logic to the madness, like a language you're on the verge of understanding.</p>
+        
+        <p><span class="character-name">"What do you see, Dreamer?"</span> Cindersoul asks. <span class="character-name">"Fresh eyes sometimes perceive what familiarity blinds us to."</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice crimson" data-target="creation-breach-insight">"I see a pattern—it's not chaos, but a different kind of order."</div>
+        <div class="choice crimson" data-target="creation-breach-containment">"I think you're fighting fire with fire. Let's try containment instead of sealing."</div>
+        <div class="choice crimson" data-target="beginning">"This is beyond my understanding. I need to start over."</div>
+    </div>
+</div>
+
+<div class="scene" id="creation-breach-hesitate">
+    <div class="crimson-realm">
+        <p>"I'm not sure I can help with something this dangerous," you admit, eyeing the writhing tear in reality with justified caution. "I barely understand the rules of this realm."</p>
+        
+        <p>Cindersoul nods, a flicker of disappointment in those fiery eyes quickly replaced by understanding. <span class="character-name">"Wisdom often begins with acknowledging limitations. The Breach is indeed dangerous—we've lost several skilled shapers who approached it overconfidently."</span></p>
+        
+        <p>A nearby object—once perhaps a sculpture—twists and fragments as a tendril of chaotic energy briefly touches it. The sight reinforces your decision.</p>
+        
+        <p><span class="character-name">"There are other ways you might aid us,"</span> Cindersoul suggests. <span class="character-name">"Learning creation would strengthen our ranks, or you could help us research similar phenomena in the archives. What would you prefer?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice crimson" data-target="creation-learning">"I'll learn creation first, then reconsider the Breach."</div>
+        <div class="choice crimson" data-target="creation-research">"Research sounds safer. Let's check the archives."</div>
+        <div class="choice crimson" data-target="beginning">"I need to explore other realms before deciding."</div>
+    </div>
+</div>
+
+<!-- Creation Explore Path -->
+<div class="scene" id="creation-explore">
+    <div class="crimson-realm">
+        <p>"I'll explore on my own for now," you tell Flameheart, feeling drawn to the wonders of this strange realm.</p>
+        
+        <p>Flameheart inclines their head. <span class="character-name">"As you wish. The bridges of light will guide you to safe areas. Be cautious of the Breach's influence—any areas shimmering with discordant colors should be avoided."</span></p>
+        
+        <p>They hand you a small crimson crystal. <span class="character-name">"Hold this if you need assistance. It will signal me."</span></p>
+        
+        <p>You set off across a bridge of solidified light, marveling at the floating islands in the distance. Some host magnificent structures of impossible architecture; others contain gardens where plants made of crystal, flame, and pure energy grow together in harmonious arrangements.</p>
+        
+        <p>On the nearest island, you find a gathering of copper-skinned beings teaching younger ones the art of creation. One notices your arrival and beckons you over.</p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice crimson" data-target="creation-join-class">"Join the creation class."</div>
+        <div class="choice crimson" data-target="creation-continue-exploring">"Continue exploring other islands."</div>
+        <div class="choice crimson" data-target="beginning">"Return to the starting chamber."</div>
+    </div>
+</div>
+
+<!-- Understanding Archive Journey Path -->
+<div class="scene" id="understanding-archive-journey">
+    <div class="violet-realm">
+        <p>The path of violet light extends before you, winding between floating platforms and through veils of cosmic dust that part as you approach. Omniscience glides alongside you, the galaxies within their form shifting and rotating.</p>
+        
+        <p><span class="character-name">"The Archive exists in a state of quantum uncertainty,"</span> they explain without speaking. <span class="character-name">"It contains all possible information, but one can only access what one has the capacity to comprehend. Your artifacts will help bridge that gap."</span></p>
+        
+        <p>As you walk, the floating structures around you grow more complex and ancient-looking. You pass libraries where books rearrange themselves constantly, observatories pointed at stars that exist in multiple times simultaneously, and meditation chambers where beings sit unmoving, some covered in dust as if they haven't moved for centuries.</p>
+        
+        <p>Finally, the path terminates at a vast spherical structure that seems to exist partially outside normal space—sections of it disappear and reappear from different angles. Above its entrance floats a symbol that somehow represents all possible symbols simultaneously.</p>
+        
+        <p><span class="character-name">"The Cosmic Archive,"</span> Omniscience announces. <span class="character-name">"Few outsiders have ever been permitted entry. Are you prepared for what you may learn inside?"</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice violet" data-target="understanding-enter-archive">"I'm ready to enter."</div>
+        <div class="choice violet" data-target="understanding-prepare-more">"I need a moment to prepare myself."</div>
+        <div class="choice violet" data-target="beginning">"This is too overwhelming. I should start over."</div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-question-plan">
+    <div class="violet-realm">
+        <p>"I have questions about this plan," you say, feeling the weight of responsibility in Omniscience's proposal. "What exactly am I looking for in these blueprints? And what happens if I fail?"</p>
+        
+        <p>Omniscience's form ripples, galaxies within them spinning faster momentarily. <span class="character-name">"Prudent questions. The blueprints aren't physical designs, but conceptual frameworks—the metaphysical architecture that allows the Spires to connect disparate realms without collapsing them into each other."</span></p>
+        
+        <p>A small model appears between you—interconnected spheres representing different realms, with the Spires at the center. <span class="character-name">"We believe the original design contained safeguards that have degraded over eons. With both artifacts, you may perceive these flaws and help us restore them."</span></p>
+        
+        <p><span class="character-name">"As for failure..."</span> Omniscience's form darkens slightly. <span class="character-name">"The boundaries between realms will continue to erode. Eventually, all will collapse into chaos—including your home world. But understand this: merely attempting may reveal insights we currently lack. There is value even in informed failure."</span></p>
+    </div>
+    
+    <div class="choices">
+        <div class="choice violet" data-target="understanding-archive-journey">"Let's proceed to the Archive."</div>
+        <div class="choice violet" data-target="understanding-alternatives">"Are there alternative approaches?"</div>
+        <div class="choice violet" data-target="beginning">"I need to explore other options first."</div>
+    </div>
+</div>
+
+<!-- Additional intermediate scenes -->
+<div class="scene" id="transformation-self-strength">
+    <div class="emerald-realm">
+        <p>Content for transformation-self-strength would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-self-wisdom">
+    <div class="emerald-realm">
+        <p>Content for transformation-self-wisdom would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-understanding-observe">
+    <div class="emerald-realm">
+        <p>Content for transformation-understanding-observe would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-understanding-experience">
+    <div class="emerald-realm">
+        <p>Content for transformation-understanding-experience would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-aid-tree">
+    <div class="emerald-realm">
+        <p>Content for transformation-aid-tree would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="transformation-explore">
+    <div class="emerald-realm">
+        <p>Content for transformation-explore would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-self-memories">
+    <div class="violet-realm">
+        <p>Content for understanding-self-memories would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-self-potential">
+    <div class="violet-realm">
+        <p>Content for understanding-self-potential would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-purpose-transfer">
+    <div class="violet-realm">
+        <p>Content for understanding-purpose-transfer would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-purpose-guided">
+    <div class="violet-realm">
+        <p>Content for understanding-purpose-guided would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-observe-others">
+    <div class="violet-realm">
+        <p>Content for understanding-observe-others would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-inner-questions">
+    <div class="violet-realm">
+        <p>Content for understanding-inner-questions would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-advanced-learning">
+    <div class="crimson-realm">
+        <p>Content for creation-advanced-learning would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-breach-discussion">
+    <div class="crimson-realm">
+        <p>Content for creation-breach-discussion would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-breach-insight">
+    <div class="crimson-realm">
+        <p>Content for creation-breach-insight would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-breach-containment">
+    <div class="crimson-realm">
+        <p>Content for creation-breach-containment would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-research">
+    <div class="crimson-realm">
+        <p>Content for creation-research would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-join-class">
+    <div class="crimson-realm">
+        <p>Content for creation-join-class would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="creation-continue-exploring">
+    <div class="crimson-realm">
+        <p>Content for creation-continue-exploring would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-enter-archive">
+    <div class="violet-realm">
+        <p>Content for understanding-enter-archive would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-prepare-more">
+    <div class="violet-realm">
+        <p>Content for understanding-prepare-more would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+
+<div class="scene" id="understanding-alternatives">
+    <div class="violet-realm">
+        <p>Content for understanding-alternatives would go here</p>
+        <div class="choices">
+            <div class="choice neutral" data-target="beginning">Return to the beginning</div>
+        </div>
+    </div>
+</div>
+            
+        </div>
+        
+        <div id="game-stats">
+            Paths discovered: <span id="paths-counter">0</span>/<span id="total-paths">24</span>
+        </div>
+        
+        <button id="restart-button">Restart Journey</button>
+        
+        <div id="visual-effects">
+            <div class="book-glow"></div>
+            <div class="amulet-glow"></div>
+        </div>
+    </div>
+    
+    <script>
+    // Wait for DOM to load
+    document.addEventListener('DOMContentLoaded', function() {
+        initGame();
+    });
+    
+    // Create ambient particles
+    function createAmbientParticles() {
+        const visualEffects = document.getElementById('visual-effects');
+        
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('ambient-particle');
+            
+            // Random size
+            const size = Math.random() * 4 + 1;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            // Random position
+            particle.style.left = `${Math.random() * 100}vw`;
+            particle.style.top = `${Math.random() * 100}vh`;
+            
+            // Random opacity
+            particle.style.opacity = Math.random() * 0.7 + 0.3;
+            
+            // Random animation delay
+            particle.style.animationDelay = `${Math.random() * 20}s`;
+            
+            // Random color based on realms
+            const colorChoice = Math.random();
+            if (colorChoice < 0.33) {
+                particle.style.boxShadow = '0 0 5px rgba(220, 20, 60, 0.8)';
+            } else if (colorChoice < 0.66) {
+                particle.style.boxShadow = '0 0 5px rgba(16, 185, 129, 0.8)';
+            } else {
+                particle.style.boxShadow = '0 0 5px rgba(139, 92, 246, 0.8)';
+            }
+            
+            visualEffects.appendChild(particle);
+        }
+    }
+    
+    // Track player state
+    const gameState = {
+        currentScene: 'beginning',
+        inventory: {
+            book: false,
+            amulet: false
+        },
+        visitedScenes: new Set(['beginning']),
+        effects: {
+            ambient: true,
+            bookGlow: false,
+            amuletGlow: false
+        },
+        endings: {
+            creator: false,
+            catalyst: false,
+            oracle: false,
+            equilibrium: false,
+            return: false,
+            ascension: false,
+            corruption: false
+        }
+    };
+    
+    // DOM elements
+    const sceneContainer = document.getElementById('scene-container');
+    const bookIcon = document.getElementById('book-icon');
+    const amuletIcon = document.getElementById('amulet-icon');
+    const bookGlow = document.querySelector('.book-glow');
+    const amuletGlow = document.querySelector('.amulet-glow');
+    const restartButton = document.getElementById('restart-button');
+    const pathsCounter = document.getElementById('paths-counter');
+    const totalPaths = document.getElementById('total-paths');
+
+    // Initialize the game
+    function initGame() {
+        // Create ambient particles
+        createAmbientParticles();
+        
+        // Set initial scene
+        showScene(gameState.currentScene);
+        
+        // Add event listeners to all choice buttons
+        updateChoiceListeners();
+        
+        // Add restart button listener
+        restartButton.addEventListener('click', restartGame);
+        
+        // Update UI
+        updateInventoryDisplay();
+        updatePathsCounter();
+    }
+
+    // Update choice listeners
+    function updateChoiceListeners() {
+        // Get all choice buttons
+        const choices = document.querySelectorAll('.scene.active .choice');
+        
+        // Add click event to each choice
+        choices.forEach(choice => {
+            choice.addEventListener('click', handleChoice);
+        });
+    }
+
+    // Handle choice clicks
+    function handleChoice(event) {
+        const targetScene = event.currentTarget.getAttribute('data-target');
+        
+        // Check for special scenes that affect inventory
+        if (targetScene === 'the-book' || targetScene === 'the-book-after-amulet' || 
+            targetScene.includes('-with-book') || targetScene.includes('-with-both')) {
+            gameState.inventory.book = true;
+        }
+        
+        if (targetScene === 'the-amulet' || targetScene === 'the-amulet-after-book' || 
+            targetScene.includes('-with-amulet') || targetScene.includes('-with-both')) {
+            gameState.inventory.amulet = true;
+        }
+        
+        // Update inventory display
+        updateInventoryDisplay();
+        
+        // Change scene
+        showScene(targetScene);
+        
+        // Check if this is an ending
+        checkForEnding(targetScene);
+    }
+
+    // Show a specific scene
+    function showScene(sceneId) {
+        // Hide all scenes
+        const allScenes = document.querySelectorAll('.scene');
+        allScenes.forEach(scene => {
+            scene.classList.remove('active');
+        });
+        
+        // Show target scene
+        const targetScene = document.getElementById(sceneId);
+        if (targetScene) {
+            targetScene.classList.add('active');
+            gameState.currentScene = sceneId;
+            
+            // Add to visited scenes
+            if (!gameState.visitedScenes.has(sceneId)) {
+                gameState.visitedScenes.add(sceneId);
+                updatePathsCounter();
+            }
+            
+            // Scroll to top of scene
+            sceneContainer.scrollTop = 0;
+            
+            // Update colors based on realm
+            updateRealmEffects(sceneId);
+            
+            // Update choice listeners
+            updateChoiceListeners();
+        } else {
+            console.error(`Scene with ID "${sceneId}" not found`);
+        }
+    }
+
+    // Update inventory display
+    function updateInventoryDisplay() {
+        // Update book icon
+        if (gameState.inventory.book) {
+            bookIcon.classList.add('active');
+            gameState.effects.bookGlow = true;
+        } else {
+            bookIcon.classList.remove('active');
+            gameState.effects.bookGlow = false;
+        }
+        
+        // Update amulet icon
+        if (gameState.inventory.amulet) {
+            amuletIcon.classList.add('active');
+            gameState.effects.amuletGlow = true;
+        } else {
+            amuletIcon.classList.remove('active');
+            gameState.effects.amuletGlow = false;
+        }
+        
+        // Update glows
+        updateGlowEffects();
+    }
+
+    // Update glow effects
+    function updateGlowEffects() {
+        // Book glow
+        if (gameState.effects.bookGlow) {
+            bookGlow.style.opacity = '1';
+            bookGlow.style.left = `${Math.random() * 80 + 10}vw`;
+            bookGlow.style.top = `${Math.random() * 80 + 10}vh`;
+        } else {
+            bookGlow.style.opacity = '0';
+        }
+        
+        // Amulet glow
+        if (gameState.effects.amuletGlow) {
+            amuletGlow.style.opacity = '1';
+            amuletGlow.style.left = `${Math.random() * 80 + 10}vw`;
+            amuletGlow.style.top = `${Math.random() * 80 + 10}vh`;
+        } else {
+            amuletGlow.style.opacity = '0';
+        }
+    }
+
+    // Update realm background effects based on current scene
+    function updateRealmEffects(sceneId) {
+        const body = document.body;
+        
+        // Reset to default
+        body.style.backgroundImage = 'radial-gradient(circle at center, rgba(50, 50, 80, 0.8) 0%, rgba(20, 20, 40, 1) 70%)';
+        
+        // Change based on realm
+        if (sceneId.includes('crimson') || sceneId.includes('creation')) {
+            body.style.backgroundImage = 'radial-gradient(circle at center, rgba(80, 40, 40, 0.8) 0%, rgba(40, 10, 10, 1) 70%)';
+        } else if (sceneId.includes('emerald') || sceneId.includes('transformation')) {
+            body.style.backgroundImage = 'radial-gradient(circle at center, rgba(40, 80, 60, 0.8) 0%, rgba(10, 40, 30, 1) 70%)';
+        } else if (sceneId.includes('violet') || sceneId.includes('understanding')) {
+            body.style.backgroundImage = 'radial-gradient(circle at center, rgba(60, 40, 80, 0.8) 0%, rgba(30, 10, 40, 1) 70%)';
+        }
+    }
+
+    // Update paths counter
+    function updatePathsCounter() {
+        pathsCounter.textContent = gameState.visitedScenes.size;
+    }
+
+    // Check if current scene is an ending
+    function checkForEnding(sceneId) {
+        // Update ending status if this is one of the ending scenes
+        if (sceneId === 'ending-creator') {
+            gameState.endings.creator = true;
+        } else if (sceneId === 'ending-catalyst') {
+            gameState.endings.catalyst = true;
+        } else if (sceneId === 'ending-oracle') {
+            gameState.endings.oracle = true;
+        } else if (sceneId === 'ending-equilibrium') {
+            gameState.endings.equilibrium = true;
+        } else if (sceneId === 'ending-return') {
+            gameState.endings.return = true;
+        } else if (sceneId === 'ending-ascension') {
+            gameState.endings.ascension = true;
+        } else if (sceneId === 'ending-corruption') {
+            gameState.endings.corruption = true;
+        }
+    }
+
+    // Restart the game
+    function restartGame() {
+        // Reset game state
+        gameState.currentScene = 'beginning';
+        gameState.inventory.book = false;
+        gameState.inventory.amulet = false;
+        gameState.effects.bookGlow = false;
+        gameState.effects.amuletGlow = false;
+        
+        // Keep track of visited scenes for the counter
+        // Don't reset gameState.visitedScenes
+        
+        // Update UI
+        updateInventoryDisplay();
+        showScene('beginning');
+    }
+
+    // Add periodic effects for ambient motion
+    setInterval(() => {
+        if (gameState.effects.bookGlow) {
+            bookGlow.style.left = `${Math.random() * 80 + 10}vw`;
+            bookGlow.style.top = `${Math.random() * 80 + 10}vh`;
+        }
+        
+        if (gameState.effects.amuletGlow) {
+            amuletGlow.style.left = `${Math.random() * 80 + 10}vw`;
+            amuletGlow.style.top = `${Math.random() * 80 + 10}vh`;
+        }
+    }, 5000);
+</script>
+</body>
+</html>
